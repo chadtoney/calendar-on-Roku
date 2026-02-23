@@ -5,6 +5,8 @@
 sub init()
     m.task = CreateObject("roSGNode", "CalendarTask")
     m.task.observeField("state", "onTaskStateChange")
+    m.calendarOptions = []
+    m.selectedRowIndex = 0
 
     ' Start the OAuth device-auth flow immediately on launch
     m.task.control = "RUN"
@@ -25,9 +27,10 @@ sub onTaskStateChange()
     if state = "waitingForUser"
         showAuthPanel()
     else if state = "authenticated"
-        showLoadingPanel("Signed in!  Loading your calendar…")
-        ' Kick off event fetch in the same task
-        m.task.command = "fetchEvents"
+        showLoadingPanel("Signed in!  Loading calendars…")
+        m.task.command = "listCalendars"
+    else if state = "calendarsReady"
+        showCalendarPanel()
     else if state = "eventsReady"
         showEventsPanel()
     else if state = "error"
@@ -41,9 +44,92 @@ end sub
 sub hideAllPanels()
     m.top.findNode("authPanel").visible    = false
     m.top.findNode("loadingPanel").visible = false
+    m.top.findNode("calendarPanel").visible = false
     m.top.findNode("eventsPanel").visible  = false
     m.top.findNode("errorPanel").visible   = false
 end sub
+
+sub showCalendarPanel()
+    calendarsJson = m.task.calendars
+    calendars = ParseJson(calendarsJson)
+    m.calendarOptions = []
+
+    if calendars <> invalid
+        for each cal in calendars
+            entry = {}
+            entry.id = cal.id
+            entry.summary = cal.summary
+            entry.selected = false
+            if cal.primary = true
+                entry.selected = true
+            end if
+            m.calendarOptions.push(entry)
+        end for
+    end if
+
+    if m.calendarOptions.count() = 0
+        showErrorPanel("No calendars found for this account.")
+        return
+    end if
+
+    m.selectedRowIndex = 0
+    renderCalendarOptions()
+    m.top.findNode("calendarPanel").visible = true
+end sub
+
+sub renderCalendarOptions()
+    rowGroup = m.top.findNode("calendarRows")
+
+    while rowGroup.getChildCount() > 0
+        rowGroup.removeChildIndex(0)
+    end while
+
+    rowY = 0
+    for i = 0 to m.calendarOptions.count() - 1
+        entry = m.calendarOptions[i]
+
+        bg = CreateObject("roSGNode", "Rectangle")
+        bg.width = 1200
+        bg.height = 64
+        bg.translation = [0, rowY]
+        if i = m.selectedRowIndex
+            bg.color = "#1f4068"
+        else
+            bg.color = "#16213e"
+        end if
+
+        marker = "[ ] "
+        if entry.selected then marker = "[x] "
+
+        textLabel = CreateObject("roSGNode", "Label")
+        textLabel.text = marker + entry.summary
+        textLabel.font = "font:SmallSystemFont"
+        textLabel.color = "#e2e2e2"
+        textLabel.translation = [16, 18]
+        bg.appendChild(textLabel)
+
+        rowGroup.appendChild(bg)
+        rowY = rowY + 72
+    end for
+end sub
+
+sub toggleCurrentCalendarSelection()
+    if m.calendarOptions.count() = 0 then return
+    current = m.calendarOptions[m.selectedRowIndex]
+    current.selected = not current.selected
+    m.calendarOptions[m.selectedRowIndex] = current
+    renderCalendarOptions()
+end sub
+
+function selectedCalendarIdsJson() as string
+    ids = []
+    for each entry in m.calendarOptions
+        if entry.selected = true
+            ids.push(entry.id)
+        end if
+    end for
+    return FormatJson(ids)
+end function
 
 sub showAuthPanel()
     panel = m.top.findNode("authPanel")
@@ -91,6 +177,15 @@ sub showEventsPanel()
             titleLabel.color       = "#e2e2e2"
             titleLabel.translation = [16, 10]
             bg.appendChild(titleLabel)
+
+            if event.calendarName <> invalid and event.calendarName <> ""
+                calLabel = CreateObject("roSGNode", "Label")
+                calLabel.text        = event.calendarName
+                calLabel.font        = "font:SmallSystemFont"
+                calLabel.color       = "#aaaaaa"
+                calLabel.translation = [950, 10]
+                bg.appendChild(calLabel)
+            end if
 
             ' Date / time
             timeLabel = CreateObject("roSGNode", "Label")
@@ -157,7 +252,9 @@ end function
 function onKeyEvent(key as string, press as boolean) as boolean
     if press and key = "OK"
         state = m.task.state
-        if state = "error"
+        if state = "calendarsReady"
+            toggleCurrentCalendarSelection()
+        else if state = "error"
             ' Retry the whole flow
             hideAllPanels()
             showLoadingPanel("Retrying…")
@@ -169,6 +266,39 @@ function onKeyEvent(key as string, press as boolean) as boolean
             m.task.command = "fetchEvents"
         end if
         return true
+    else if press and key = "down"
+        if m.task.state = "calendarsReady" and m.calendarOptions.count() > 0
+            m.selectedRowIndex = m.selectedRowIndex + 1
+            if m.selectedRowIndex >= m.calendarOptions.count()
+                m.selectedRowIndex = m.calendarOptions.count() - 1
+            end if
+            renderCalendarOptions()
+            return true
+        end if
+    else if press and key = "up"
+        if m.task.state = "calendarsReady" and m.calendarOptions.count() > 0
+            m.selectedRowIndex = m.selectedRowIndex - 1
+            if m.selectedRowIndex < 0
+                m.selectedRowIndex = 0
+            end if
+            renderCalendarOptions()
+            return true
+        end if
+    else if press and key = "right"
+        if m.task.state = "calendarsReady"
+            idsJson = selectedCalendarIdsJson()
+            ids = ParseJson(idsJson)
+            if ids = invalid or ids.count() = 0
+                showErrorPanel("Select at least one calendar first.")
+                return true
+            end if
+
+            hideAllPanels()
+            showLoadingPanel("Loading selected calendars…")
+            m.task.selectedCalendarIds = idsJson
+            m.task.command = "fetchEvents"
+            return true
+        end if
     end if
     return false
 end function

@@ -14,7 +14,8 @@ const GOOGLE_CLIENT_SECRET = "YOUR_CLIENT_SECRET_HERE"
 const GOOGLE_SCOPE         = "https://www.googleapis.com/auth/calendar.readonly"
 const DEVICE_CODE_URL      = "https://oauth2.googleapis.com/device/code"
 const TOKEN_URL            = "https://oauth2.googleapis.com/token"
-const CALENDAR_EVENTS_URL  = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
+const CALENDAR_LIST_URL    = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
+const CALENDAR_API_BASE    = "https://www.googleapis.com/calendar/v3/calendars/"
 
 ' Entry point called by the Task infrastructure
 sub init()
@@ -26,6 +27,8 @@ sub onCommand()
     cmd = m.top.command
     if cmd = "startAuth"
         startDeviceAuth()
+    else if cmd = "listCalendars"
+        fetchCalendarList()
     else if cmd = "fetchEvents"
         fetchCalendarEvents()
     end if
@@ -128,13 +131,93 @@ sub fetchCalendarEvents()
         return
     end if
 
-    ' Build query: next 10 single-instance events starting from now
+    calendarIds = ParseJson(m.top.selectedCalendarIds)
+    if calendarIds = invalid or calendarIds.count() = 0
+        calendarIds = ["primary"]
+    end if
+
+    calendarsMap = {}
+    calendars = ParseJson(m.top.calendars)
+    if calendars <> invalid
+        for each cal in calendars
+            if cal.id <> invalid and cal.summary <> invalid
+                calendarsMap[cal.id] = cal.summary
+            end if
+        end for
+    end if
+
+    ' Build query: next 10 single-instance events per selected calendar starting from now
     now     = CreateObject("roDateTime")
     timeMin = now.toISOString()
     queryArgs = "?maxResults=10&orderBy=startTime&singleEvents=true&timeMin=" + EncodeUriComponent(timeMin)
 
+    ' Build a simplified array of event objects for the UI
+    events = []
+    for each calendarId in calendarIds
+        encodedId = EncodeUriComponent(calendarId)
+
+        url = CreateObject("roUrlTransfer")
+        url.setUrl(CALENDAR_API_BASE + encodedId + "/events" + queryArgs)
+        url.setCertificatesFile("common:/certs/ca-bundle.crt")
+        url.addHeader("Authorization", "Bearer " + token)
+
+        response = url.getToString()
+        parsed   = ParseJson(response)
+
+        if parsed = invalid or parsed.items = invalid
+            m.top.errorMsg = "Could not retrieve calendar events"
+            m.top.state    = "error"
+            return
+        end if
+
+        for each item in parsed.items
+            event = {}
+            event.title = item.summary
+            if event.title = invalid then event.title = "(No title)"
+
+            if item.start.dateTime <> invalid
+                event.start = item.start.dateTime
+            else
+                event.start = item.start.date
+            end if
+
+            if item.end.dateTime <> invalid
+                event.end = item.end.dateTime
+            else
+                event.end = item.end.date
+            end if
+
+            event.location    = item.location
+            event.description = item.description
+            event.calendarId  = calendarId
+            if calendarsMap[calendarId] <> invalid
+                event.calendarName = calendarsMap[calendarId]
+            else
+                event.calendarName = calendarId
+            end if
+
+            events.push(event)
+        end for
+    end for
+
+    if events.count() > 1
+        sortEventsByStart(events)
+    end if
+
+    m.top.events = FormatJson(events)
+    m.top.state  = "eventsReady"
+end sub
+
+sub fetchCalendarList()
+    token = m.top.accessToken
+    if token = "" or token = invalid
+        m.top.errorMsg = "No access token – please authorize first"
+        m.top.state    = "error"
+        return
+    end if
+
     url = CreateObject("roUrlTransfer")
-    url.setUrl(CALENDAR_EVENTS_URL + queryArgs)
+    url.setUrl(CALENDAR_LIST_URL)
     url.setCertificatesFile("common:/certs/ca-bundle.crt")
     url.addHeader("Authorization", "Bearer " + token)
 
@@ -142,38 +225,28 @@ sub fetchCalendarEvents()
     parsed   = ParseJson(response)
 
     if parsed = invalid or parsed.items = invalid
-        m.top.errorMsg = "Could not retrieve calendar events"
+        m.top.errorMsg = "Could not retrieve calendar list"
         m.top.state    = "error"
         return
     end if
 
-    ' Build a simplified array of event objects for the UI
-    events = []
+    calendars = []
     for each item in parsed.items
-        event = {}
-        event.title = item.summary
-        if event.title = invalid then event.title = "(No title)"
-
-        ' Prefer dateTime over date (all-day events use date only)
-        if item.start.dateTime <> invalid
-            event.start = item.start.dateTime
-        else
-            event.start = item.start.date
+        cal = {}
+        cal.id = item.id
+        cal.summary = item.summary
+        if cal.summary = invalid or cal.summary = ""
+            cal.summary = cal.id
         end if
-
-        if item.end.dateTime <> invalid
-            event.end = item.end.dateTime
-        else
-            event.end = item.end.date
+        cal.primary = false
+        if item.primary = true
+            cal.primary = true
         end if
-
-        event.location    = item.location
-        event.description = item.description
-        events.push(event)
+        calendars.push(cal)
     end for
 
-    m.top.events = FormatJson(events)
-    m.top.state  = "eventsReady"
+    m.top.calendars = FormatJson(calendars)
+    m.top.state     = "calendarsReady"
 end sub
 
 ' -------------------------------------------------------
@@ -204,3 +277,24 @@ function decToHex(n as integer) as string
     if len(result) = 1 then result = "0" + result
     return result
 end function
+
+sub sortEventsByStart(events as object)
+    count = events.count()
+    if count < 2 then return
+
+    for i = 0 to count - 2
+        for j = i + 1 to count - 1
+            leftStart = events[i].start
+            rightStart = events[j].start
+
+            if leftStart = invalid then leftStart = ""
+            if rightStart = invalid then rightStart = ""
+
+            if rightStart < leftStart
+                tmp = events[i]
+                events[i] = events[j]
+                events[j] = tmp
+            end if
+        end for
+    end for
+end sub

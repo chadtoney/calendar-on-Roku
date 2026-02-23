@@ -99,6 +99,27 @@
         </Group>
 
         <!-- ================================================
+             CALENDAR PICKER PANEL
+             ================================================ -->
+        <Group id="calendarPanel" visible="false">
+            <Label
+                id="calendarHeader"
+                text="Choose calendars to show"
+                font="font:SmallBoldSystemFont"
+                color="#aaaaaa"
+                translation="[40, 100]"
+            />
+            <Label
+                id="calendarHelp"
+                text="UP/DOWN move • OK toggle • RIGHT load events"
+                font="font:SmallSystemFont"
+                color="#4fc3f7"
+                translation="[40, 130]"
+            />
+            <Group id="calendarRows" translation="[40, 170]"/>
+        </Group>
+
+        <!-- ================================================
              EVENTS PANEL – list of upcoming events
              ================================================ -->
         <Group id="eventsPanel" visible="false">

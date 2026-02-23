@@ -108,6 +108,32 @@ npx roku-deploy --host <roku-ip> --password <dev-password>
 4. Approve the *Google Calendar (read-only)* permission.
 5. The TV automatically loads your upcoming events.
 
+After sign-in, the app now shows a calendar picker:
+
+* **UP/DOWN**: move through calendars
+* **OK**: toggle a calendar on/off
+* **RIGHT**: load upcoming events from selected calendars
+
+### 6 – Test Google Calendar API locally
+
+List which calendars the authorized account can access:
+
+```powershell
+pwsh ./scripts/test-google-calendar-events.ps1 -ListCalendarsOnly
+```
+
+Then fetch upcoming events from the default `primary` calendar:
+
+```powershell
+pwsh ./scripts/test-google-calendar-events.ps1
+```
+
+Fetch a specific calendar by ID (use an ID from the list step):
+
+```powershell
+pwsh ./scripts/test-google-calendar-events.ps1 -CalendarId "your_calendar_id@group.calendar.google.com"
+```
+
 ---
 
 ## Development notes

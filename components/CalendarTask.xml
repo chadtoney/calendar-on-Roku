@@ -17,10 +17,12 @@
     <interface>
         <field id="command"         type="string" value=""      onChange="onCommand"/>
         <field id="accessToken"     type="string" value=""/>
+      <field id="selectedCalendarIds" type="string" value="[]"/>
 
         <field id="state"           type="string" value="idle"/>
         <field id="userCode"        type="string" value=""/>
         <field id="verificationUrl" type="string" value=""/>
+      <field id="calendars"       type="string" value="[]"/>
         <field id="events"          type="string" value="[]"/>
         <field id="errorMsg"        type="string" value=""/>
     </interface>
