@@ -45,14 +45,19 @@ images/
 5. Select **Application type: TV and Limited Input devices**.
 6. Note the **Client ID** and **Client Secret**.
 
-### 2 – Configure the app
+### 2 – Configure the app (keep secrets out of git)
 
-Open `components/CalendarTask.brs` and replace the placeholder values near the top:
+This repo keeps placeholder values in `components/CalendarTask.brs` on purpose.
+Do **not** commit real credentials.
 
-```brightscript
-const GOOGLE_CLIENT_ID     = "YOUR_CLIENT_ID_HERE"
-const GOOGLE_CLIENT_SECRET = "YOUR_CLIENT_SECRET_HERE"
-```
+Recommended workflow:
+
+1. Keep local credentials in an untracked `env` (or `.env`) file.
+2. Leave committed source files with placeholders.
+3. Before sideloading, inject or copy local values into your local working copy only.
+4. Never push real `CLIENT_SECRET` values to GitHub.
+
+An `.env.example` template is included for the variable names.
 
 ### 3 – Set up your Roku for development
 
@@ -62,6 +67,21 @@ const GOOGLE_CLIENT_SECRET = "YOUR_CLIENT_SECRET_HERE"
 3. The Roku Developer Web UI is at `http://<roku-ip>`.
 
 ### 4 – Package and sideload the channel
+
+**Recommended (Windows PowerShell script):**
+
+```powershell
+pwsh ./scripts/package-roku.ps1
+```
+
+This reads `env` (or `.env`) locally, injects credentials into a temporary build folder,
+and creates `dist/GoogleCalendar.zip` without changing tracked source files.
+
+If you intentionally want a package with placeholders only:
+
+```powershell
+pwsh ./scripts/package-roku.ps1 -AllowPlaceholders
+```
 
 **Option A – zip manually:**
 

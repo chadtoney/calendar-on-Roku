@@ -1,0 +1,10 @@
+# Local secrets
+env
+.env
+.env.*
+!.env.example
+
+# Local build artifacts
+.build/
+dist/
+GoogleCalendar.zip
