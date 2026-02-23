@@ -7,19 +7,19 @@
 ' -------------------------------------------------------
 
 ' ===== USER CONFIGURATION =====
-const GOOGLE_CLIENT_ID     = "YOUR_CLIENT_ID_HERE"
-const GOOGLE_CLIENT_SECRET = "YOUR_CLIENT_SECRET_HERE"
+' (Initialized in init() for SceneGraph compatibility)
 ' ==============================
-
-const GOOGLE_SCOPE         = "https://www.googleapis.com/auth/calendar.readonly"
-const DEVICE_CODE_URL      = "https://oauth2.googleapis.com/device/code"
-const TOKEN_URL            = "https://oauth2.googleapis.com/token"
-const CALENDAR_LIST_URL    = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
-const CALENDAR_API_BASE    = "https://www.googleapis.com/calendar/v3/calendars/"
 
 ' Entry point called by the Task infrastructure
 sub init()
     m.port = CreateObject("roMessagePort")
+    m.googleClientId     = "YOUR_CLIENT_ID_HERE"
+    m.googleClientSecret = "YOUR_CLIENT_SECRET_HERE"
+    m.googleScope        = "https://www.googleapis.com/auth/calendar.readonly"
+    m.deviceCodeUrl      = "https://oauth2.googleapis.com/device/code"
+    m.tokenUrl           = "https://oauth2.googleapis.com/token"
+    m.calendarListUrl    = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
+    m.calendarApiBase    = "https://www.googleapis.com/calendar/v3/calendars/"
 end sub
 
 ' Called when the "command" field changes
@@ -39,11 +39,11 @@ end sub
 ' -------------------------------------------------------
 sub startDeviceAuth()
     url = CreateObject("roUrlTransfer")
-    url.setUrl(DEVICE_CODE_URL)
+    url.setUrl(m.deviceCodeUrl)
     url.setCertificatesFile("common:/certs/ca-bundle.crt")
     url.addHeader("Content-Type", "application/x-www-form-urlencoded")
 
-    body = "client_id=" + GOOGLE_CLIENT_ID + "&scope=" + GOOGLE_SCOPE
+    body = "client_id=" + m.googleClientId + "&scope=" + m.googleScope
     response = url.postFromString(body)
 
     if response = invalid or response = ""
@@ -87,14 +87,11 @@ sub pollForToken()
         elapsed = elapsed + interval
 
         url = CreateObject("roUrlTransfer")
-        url.setUrl(TOKEN_URL)
+        url.setUrl(m.tokenUrl)
         url.setCertificatesFile("common:/certs/ca-bundle.crt")
         url.addHeader("Content-Type", "application/x-www-form-urlencoded")
 
-        body = "client_id="     + GOOGLE_CLIENT_ID + _
-               "&client_secret=" + GOOGLE_CLIENT_SECRET + _
-               "&device_code="   + m.deviceCode + _
-               "&grant_type=urn:ietf:params:oauth:grant-type:device_code"
+        body = "client_id=" + m.googleClientId + "&client_secret=" + m.googleClientSecret + "&device_code=" + m.deviceCode + "&grant_type=urn:ietf:params:oauth:grant-type:device_code"
 
         response = url.postFromString(body)
         parsed   = ParseJson(response)
@@ -157,7 +154,7 @@ sub fetchCalendarEvents()
         encodedId = EncodeUriComponent(calendarId)
 
         url = CreateObject("roUrlTransfer")
-        url.setUrl(CALENDAR_API_BASE + encodedId + "/events" + queryArgs)
+        url.setUrl(m.calendarApiBase + encodedId + "/events" + queryArgs)
         url.setCertificatesFile("common:/certs/ca-bundle.crt")
         url.addHeader("Authorization", "Bearer " + token)
 
@@ -217,7 +214,7 @@ sub fetchCalendarList()
     end if
 
     url = CreateObject("roUrlTransfer")
-    url.setUrl(CALENDAR_LIST_URL)
+    url.setUrl(m.calendarListUrl)
     url.setCertificatesFile("common:/certs/ca-bundle.crt")
     url.addHeader("Authorization", "Bearer " + token)
 
@@ -278,7 +275,7 @@ function decToHex(n as integer) as string
     return result
 end function
 
-sub sortEventsByStart(events as object)
+sub sortEventsByStart(events as dynamic)
     count = events.count()
     if count < 2 then return
 

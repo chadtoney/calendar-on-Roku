@@ -68,6 +68,26 @@ An `.env.example` template is included for the variable names.
 
 ### 4 – Package and sideload the channel
 
+**One-command package + sideload (reads Roku settings from `.env`):**
+
+```powershell
+pwsh ./scripts/sideload-roku.ps1
+```
+
+Required `.env` keys for this command:
+
+```dotenv
+ROKU_IP="192.168.1.100"
+ROKU_PASSWORD="your-roku-dev-password"
+ROKU_USER="rokudev"
+```
+
+If you want to validate inputs without uploading, use:
+
+```powershell
+pwsh ./scripts/sideload-roku.ps1 -DryRun
+```
+
 **Recommended (Windows PowerShell script):**
 
 ```powershell
