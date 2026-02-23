@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    CalendarTask – background Task node.
+
+    Fields written by the scene (inputs):
+      command      String  "startAuth" | "fetchEvents"
+      accessToken  String  OAuth access token (set after auth completes)
+
+    Fields read by the scene (outputs):
+      state        String  "idle" | "waitingForUser" | "authenticated" | "eventsReady" | "error"
+      userCode     String  Code the user enters at verificationUrl
+      verificationUrl  String  URL the user visits to authorise
+      events       String  JSON-encoded array of event objects
+      errorMsg     String  Human-readable error description
+-->
+<component name="CalendarTask" extends="Task">
+    <interface>
+        <field id="command"         type="string" value=""      onChange="onCommand"/>
+        <field id="accessToken"     type="string" value=""/>
+
+        <field id="state"           type="string" value="idle"/>
+        <field id="userCode"        type="string" value=""/>
+        <field id="verificationUrl" type="string" value=""/>
+        <field id="events"          type="string" value="[]"/>
+        <field id="errorMsg"        type="string" value=""/>
+    </interface>
+    <script type="text/brightscript" uri="pkg:/components/CalendarTask.brs"/>
+</component>

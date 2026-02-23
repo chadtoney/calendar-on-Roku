@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    MainScene – root scene for the Google Calendar Roku app.
+
+    States handled:
+      idle            – initial launch, starts auth flow
+      waitingForUser  – display device code / verification URL
+      authenticated   – auth succeeded, fetching events
+      eventsReady     – show list of upcoming events
+      error           – show error message with retry option
+-->
+<component name="MainScene" extends="Scene">
+    <script type="text/brightscript" uri="pkg:/components/MainScene.brs"/>
+
+    <children>
+        <!-- Full-screen background -->
+        <Rectangle
+            id="background"
+            color="#1a1a2e"
+            width="1280"
+            height="720"
+        />
+
+        <!-- Header bar -->
+        <Rectangle
+            id="headerBar"
+            color="#16213e"
+            width="1280"
+            height="80"
+            translation="[0, 0]"
+        />
+        <Label
+            id="headerTitle"
+            text="Google Calendar"
+            font="font:MediumBoldSystemFont"
+            color="#e2e2e2"
+            translation="[40, 20]"
+        />
+
+        <!-- ================================================
+             AUTH PANEL – shown while waiting for user code
+             ================================================ -->
+        <Group id="authPanel" visible="false">
+            <Label
+                id="authInstruction"
+                text="Sign in to your Google Account"
+                font="font:MediumBoldSystemFont"
+                color="#e2e2e2"
+                translation="[200, 160]"
+            />
+            <Label
+                id="authStep1"
+                text="Step 1:  On a phone or computer, go to:"
+                font="font:SmallSystemFont"
+                color="#aaaaaa"
+                translation="[200, 230]"
+            />
+            <Label
+                id="authUrl"
+                text=""
+                font="font:MediumBoldSystemFont"
+                color="#4fc3f7"
+                translation="[200, 270]"
+            />
+            <Label
+                id="authStep2"
+                text="Step 2:  Enter this code:"
+                font="font:SmallSystemFont"
+                color="#aaaaaa"
+                translation="[200, 340]"
+            />
+            <Label
+                id="authCode"
+                text=""
+                font="font:LargeBoldSystemFont"
+                color="#ffffff"
+                translation="[200, 380]"
+            />
+            <Label
+                id="authWaiting"
+                text="Waiting for authorization…"
+                font="font:SmallSystemFont"
+                color="#aaaaaa"
+                translation="[200, 470]"
+            />
+        </Group>
+
+        <!-- ================================================
+             LOADING PANEL
+             ================================================ -->
+        <Group id="loadingPanel" visible="false">
+            <Label
+                id="loadingMsg"
+                text="Loading your calendar…"
+                font="font:MediumBoldSystemFont"
+                color="#e2e2e2"
+                translation="[400, 330]"
+            />
+        </Group>
+
+        <!-- ================================================
+             EVENTS PANEL – list of upcoming events
+             ================================================ -->
+        <Group id="eventsPanel" visible="false">
+            <Label
+                id="eventsHeader"
+                text="Upcoming Events"
+                font="font:SmallBoldSystemFont"
+                color="#aaaaaa"
+                translation="[40, 100]"
+            />
+            <!-- Event rows are created dynamically in BrightScript -->
+            <Group id="eventRows" translation="[40, 140]"/>
+        </Group>
+
+        <!-- ================================================
+             ERROR PANEL
+             ================================================ -->
+        <Group id="errorPanel" visible="false">
+            <Label
+                id="errorIcon"
+                text="⚠"
+                font="font:LargeBoldSystemFont"
+                color="#ef5350"
+                translation="[580, 260]"
+            />
+            <Label
+                id="errorTitle"
+                text="Something went wrong"
+                font="font:MediumBoldSystemFont"
+                color="#e2e2e2"
+                translation="[390, 340]"
+            />
+            <Label
+                id="errorDetail"
+                text=""
+                font="font:SmallSystemFont"
+                color="#aaaaaa"
+                width="900"
+                wrap="true"
+                translation="[190, 400]"
+            />
+            <Label
+                id="errorRetry"
+                text="Press OK to retry"
+                font="font:SmallSystemFont"
+                color="#4fc3f7"
+                translation="[510, 480]"
+            />
+        </Group>
+    </children>
+</component>
