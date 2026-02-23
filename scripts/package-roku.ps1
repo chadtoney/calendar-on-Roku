@@ -1,5 +1,5 @@
 param(
-    [string]$EnvFile = "env",
+    [string]$EnvFile = ".env",
     [string]$OutputZip = "dist/GoogleCalendar.zip",
     [switch]$AllowPlaceholders
 )
@@ -32,6 +32,12 @@ function Get-VarFromEnvFile {
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $envPath = if ([System.IO.Path]::IsPathRooted($EnvFile)) { $EnvFile } else { Join-Path $repoRoot $EnvFile }
+if (-not (Test-Path $envPath) -and $EnvFile -eq ".env") {
+    $fallbackEnv = Join-Path $repoRoot "env"
+    if (Test-Path $fallbackEnv) {
+        $envPath = $fallbackEnv
+    }
+}
 $outputPath = if ([System.IO.Path]::IsPathRooted($OutputZip)) { $OutputZip } else { Join-Path $repoRoot $OutputZip }
 
 $stagingRoot = Join-Path $repoRoot ".build"
